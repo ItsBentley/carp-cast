@@ -177,6 +177,7 @@ button.go:hover {
 .date-picker {
   display: grid;
   gap: 5px;
+  min-width: 0;
   margin: 0 0 14px;
 }
 
@@ -188,6 +189,14 @@ button.go:hover {
 .date-picker small {
   color: var(--mute);
   font-size: 0.78rem;
+}
+
+.date-picker input[type="date"] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* ---- Place name and status message ---- */
