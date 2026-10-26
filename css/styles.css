@@ -50,6 +50,16 @@ h1 {
   text-align: center;
 }
 
+h1::after {
+  content: "";
+  display: block;
+  width: 44px;
+  height: 4px;
+  margin: 8px auto 0;
+  background: var(--brand);
+  border-radius: 999px;
+}
+
 /* ---- Search form and buttons ---- */
 form {
   display: flex;
