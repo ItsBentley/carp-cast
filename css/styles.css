@@ -255,7 +255,25 @@ button.go:hover {
   font-weight: 700;
 }
 
-.forecast-condition span {
+.weather-icon,
+.moon-icon {
+  flex: 0 0 auto;
+  color: var(--mute);
+}
+
+.weather-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.moon-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.moon-value {
+  align-items: center;
+  gap: 6px;
   font-size: 1.25rem;
 }
 
@@ -277,15 +295,16 @@ button.go:hover {
 /* Big score number on the right of each card */
 .sc {
   flex: 0 0 auto;
+  min-width: 76px;
   text-align: center;
   font-weight: 800;
-  font-size: 2.5rem;
+  font-size: 3rem;
   line-height: 1;
 }
 
 .sc small {
   display: block;
-  font-size: 1.05rem;
+  font-size: 1.2rem;
   font-weight: 600;
   margin-top: 3px;
   text-align: center;
@@ -321,11 +340,41 @@ button.go:hover {
   font-size: 0.78rem;
 }
 
+.metric > .metric-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pressure-icon,
+.metric-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
 .metric strong {
   display: block;
   margin-top: 5px;
   font-size: 1rem;
   overflow-wrap: anywhere;
+}
+
+.wind-value {
+  align-items: center;
+  gap: 5px;
+}
+
+.metric strong.wind-value,
+.metric strong.moon-value {
+  display: flex;
+}
+
+.wind-arrow {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  color: var(--brand);
 }
 
 .metric small {

@@ -162,7 +162,8 @@ function summariseDay(day) {
 
   // Daytime averages
   var wind = Math.round(mean(daytime.map(function (h) { return h.w; })));
-  var windDirection = compassDirection(meanWindDirection(daytime.map(function (h) { return h.d; })));
+  var windDirectionDegrees = meanWindDirection(daytime.map(function (h) { return h.d; }));
+  var windDirection = compassDirection(windDirectionDegrees);
   var cloud = mean(daytime.map(function (h) { return h.c; }));
   var rain = daytime.reduce(function (sum, h) { return sum + h.r; }, 0);
 
@@ -182,7 +183,8 @@ function summariseDay(day) {
 
   return {
     label: new Date(day.date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric" }),
-    hi: hi, lo: lo, wind: wind, windDirection: windDirection, rain: rain,
+    hi: hi, lo: lo, wind: wind, windDirection: windDirection,
+    windDirectionDegrees: windDirectionDegrees, rain: rain,
     sky: sky[0], moon: moon.name,
     p0: p0, p1: p1, trend: trendWord(rate),
     sunrise: day.sunrise, sunset: day.sunset,
