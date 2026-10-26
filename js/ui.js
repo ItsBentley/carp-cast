@@ -17,6 +17,7 @@ function scoreColour(score) {
   return "var(--score-" + verdict(score).toLowerCase() + ")";
 }
 
+// Inline SVG keeps forecast icons crisp without extra image or icon dependencies.
 function weatherIcon(sky) {
   var icon = sky === "Clear"
     ? '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"></path>'
@@ -56,6 +57,7 @@ function moonIcon(phase) {
 
 function windArrow(degrees) {
   if (!Number.isFinite(degrees)) return "";
+  // Meteorological directions point toward where wind comes from; rotate to downwind.
   var downwindDegrees = (degrees + 180) % 360;
   return '<svg class="wind-arrow" viewBox="0 0 24 24" aria-label="Arrow points downwind" ' +
     'style="transform:rotate(' + downwindDegrees + 'deg)" fill="none" stroke="currentColor" ' +
@@ -80,7 +82,7 @@ function moonLabelIcon() {
     '<path d="M20.2 15.6A8.5 8.5 0 0 1 8.4 3.8 8.5 8.5 0 1 0 20.2 15.6Z"></path></svg>';
 }
 
-// Draws the "best day" card and one card per day
+// Render a scored week. Forecast values are prepared by summariseDay before reaching here.
 function renderForecast(days) {
   var best = days.reduce(function (a, b) { return b.score > a.score ? b : a; });
 

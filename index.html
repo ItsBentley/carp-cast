@@ -17,7 +17,7 @@
       height="768"
     >
 
-    <!-- Location search: postcode or town name -->
+    <!-- Location search supports postcode/town entry and accessible town suggestions. -->
     <form id="search-form">
       <div class="search-field">
         <input
@@ -35,22 +35,22 @@
       <button class="go" type="submit">Search</button>
     </form>
 
-    <!-- Quick actions -->
+    <!-- Quick actions for GPS and refreshing the current forecast. -->
     <div class="tools">
       <button type="button" id="gps-btn">Use my location</button>
       <button type="button" id="refresh-btn">Refresh</button>
     </div>
 
-    <!-- Current place name and status message (loading, errors, last updated) -->
+    <!-- Current place and live loading/error/updated status. -->
     <div id="place"></div>
     <p id="msg"></p>
 
-    <!-- "Best day this week" summary card -->
+    <!-- Best-scoring day summary, populated after the forecast loads. -->
     <div class="best" id="best" hidden></div>
 
     <h2 class="section-title">Weather</h2>
 
-    <!-- One card per forecast day (filled in by js/ui.js) -->
+    <!-- Daily forecast cards, populated by js/ui.js. -->
     <div id="list"></div>
 
     <p class="note">
@@ -62,7 +62,7 @@
     </p>
   </main>
 
-  <!-- Scripts load in this order: each file relies on the ones above it -->
+  <!-- Load shared settings/helpers and data/scoring/UI before app startup. -->
   <script src="js/config.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/api.js"></script>

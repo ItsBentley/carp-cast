@@ -4,7 +4,7 @@
    moon 15 (those four are scaled down to fit the remaining 60).
    ========================================================================== */
 
-// ---- Moon phase (calculated from the date, no data feed needed) ----
+// ---- Moon phase (calculated locally from the date; no API data needed) ----
 function moonInfo(dateString) {
   var synodic = 29.530588853;                 // days in a lunar cycle
   var knownNewMoon = Date.UTC(2000, 0, 6, 18, 14);
@@ -73,6 +73,7 @@ function meanWindDirection(degrees) {
   });
   if (!validDirections.length) return null;
 
+  // Average unit vectors so directions around 0°/360° average toward north.
   var radians = validDirections.map(function (direction) {
     return direction * Math.PI / 180;
   });
@@ -94,6 +95,7 @@ function verdict(score) {
 }
 
 function scoreConditions(wind, rain, cloud, temperature, rate, pressure, moonPoints) {
+  // Non-pressure factors are scaled to 60 points; pressure supplies the other 40.
   var base = windPoints(wind) + skyInfo(rain, cloud)[1] +
     tempPoints(temperature) + moonPoints;
   return Math.round(base * 60 / 70 + pressurePoints(rate, pressure));
@@ -111,6 +113,7 @@ function scoreFishingWindow(hours, anchor, beforeMinutes, afterMinutes, name, mo
   var anchorMinutes = Number(anchorParts[0]) * 60 + Number(anchorParts[1]);
   var start = anchorMinutes - beforeMinutes;
   var end = anchorMinutes + afterMinutes;
+  // Compare hourly forecasts in the three-hour dawn/dusk window; reject partial windows.
   var windowHours = hours.filter(function (hour) {
     var time = hour.hr * 60;
     return time >= start && time <= end;
@@ -139,6 +142,7 @@ function scoreFishingWindow(hours, anchor, beforeMinutes, afterMinutes, name, mo
 }
 
 function bestFishingWindow(day, moonPoints) {
+  // Use the same scoring model to choose between the dawn and dusk windows.
   var dawn = scoreFishingWindow(day.hours, day.sunrise, 60, 120, "Dawn", moonPoints);
   var dusk = scoreFishingWindow(day.hours, day.sunset, 120, 60, "Dusk", moonPoints);
   if (!dawn) return dusk;
@@ -177,6 +181,7 @@ function summariseDay(day) {
   var fishingWindow = bestFishingWindow(day, moon.points);
 
   var score = scoreConditions(wind, rain, cloud, (hi + lo) / 2, rate, (p0 + p1) / 2, moon.points);
+  // Wind directions describe where wind comes from; the opposite points downwind.
   var bankDirection = fishingWindow && Number.isFinite(fishingWindow.windDirection)
     ? compassDirection((fishingWindow.windDirection + 180) % 360)
     : null;

@@ -2,14 +2,14 @@
    location.js: which place we are showing, and how it is chosen
    ========================================================================== */
 
-// Current state of the app
+// Current location, selection mode, and any GPS fallback note shown to the user.
 var state = {
   location: DEFAULT_LOCATION,
   mode: "gps",     // "gps" = follow the device location, "manual" = typed place
   gpsNote: ""      // small note added to the status message (e.g. location blocked)
 };
 
-// Loads the last saved place and mode from the browser
+// Restore only valid saved values so stale or malformed storage cannot break startup.
 function restoreState() {
   try {
     var saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.location) || "null");
@@ -22,7 +22,7 @@ function restoreState() {
   } catch (e) { /* storage unavailable: keep defaults */ }
 }
 
-// Switches to a new place, remembers it, and reloads the forecast
+// Select a location, persist it when storage is available, then reload the forecast.
 function setLocation(location, mode) {
   state.location = location;
   state.mode = mode || "manual";
@@ -34,8 +34,7 @@ function setLocation(location, mode) {
   loadForecast();
 }
 
-// Asks the device for its location.
-// auto = true when run on page open or Refresh (falls back quietly if blocked)
+// Ask the browser for GPS. Automatic checks fall back to the saved/default location.
 function useDeviceLocation(auto) {
   if (!navigator.geolocation) {
     state.gpsNote = " · location not available here";

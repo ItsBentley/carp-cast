@@ -1,8 +1,8 @@
 /* ==========================================================================
-   main.js: loads the forecast and connects the buttons
+   main.js: app startup, forecast loading, and search/location event handlers
    ========================================================================== */
 
-// Fetches, scores and draws the forecast for the current location
+// Run the data pipeline: download -> summarise -> render, then report its status.
 async function loadForecast() {
   setPlace(state.location.name);
   showMessage("Loading forecast…");
@@ -22,8 +22,10 @@ var activeSuggestion = -1;
 var placeSuggestions = [];
 var selectedPlace = null;
 
+// Close suggestions and invalidate any search request that is still in flight.
 function hideSuggestions() {
   suggestionsRequest++;
+  placeSuggestions = [];
   $("search-suggestions").hidden = true;
   $("search-input").setAttribute("aria-expanded", "false");
   $("search-input").removeAttribute("aria-activedescendant");
@@ -43,6 +45,7 @@ function showSuggestionMessage(message) {
   activeSuggestion = -1;
 }
 
+// Build suggestion options with textContent to keep API text as plain text.
 function renderSuggestions(places) {
   var list = $("search-suggestions");
   placeSuggestions = places;
@@ -89,6 +92,7 @@ async function updateSuggestions(query) {
   showSuggestionMessage("Searching towns…");
   try {
     var places = await searchPlaces(normalized, 5);
+    // Ignore an older response if the user has typed or submitted a newer query.
     if (request !== suggestionsRequest || $("search-input").value.trim() !== normalized) return;
     if (places.length) {
       renderSuggestions(places);
@@ -103,6 +107,7 @@ async function updateSuggestions(query) {
   }
 }
 
+// Resolve a search or selected suggestion, switch location, and load weather.
 async function submitLocation(query, place) {
   clearTimeout(suggestionsTimer);
   showMessage("Finding " + query + "…");
@@ -148,7 +153,6 @@ $("search-input").onkeydown = function (event) {
     event.preventDefault();
     selectedPlace = placeSuggestions[activeSuggestion];
     this.value = selectedPlace.name;
-    suggestionsRequest++;
     hideSuggestions();
   }
 };
@@ -158,7 +162,6 @@ $("search-suggestions").onclick = function (event) {
   if (!option) return;
   selectedPlace = placeSuggestions[Number(option.dataset.index)];
   $("search-input").value = selectedPlace.name;
-  suggestionsRequest++;
   hideSuggestions();
   $("search-input").focus();
 };

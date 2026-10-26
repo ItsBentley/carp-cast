@@ -4,16 +4,19 @@
    - Open-Meteo: town search and the weather forecast
    ========================================================================== */
 
+// Fetch JSON from a service and surface HTTP failures to the caller.
 async function fetchJson(url, errorMessage) {
   var response = await fetch(url);
   if (!response.ok) throw new Error(errorMessage);
   return response.json();
 }
 
+// Format a geocoding result consistently for suggestions and direct searches.
 function placeName(place) {
   return place.name + (place.admin1 ? ", " + place.admin1 : "");
 }
 
+// Return UK town suggestions with the coordinates needed to load a forecast.
 async function searchPlaces(query, count) {
   var url = "https://geocoding-api.open-meteo.com/v1/search?name=" + encodeURIComponent(query) +
             "&count=" + count + "&language=en&countryCode=GB";
@@ -67,7 +70,7 @@ async function nameForCoordinates(lat, lon) {
   return "My location";
 }
 
-// Downloads the hourly forecast and returns it grouped by day:
+// Download weather and sunrise/sunset data, then group hourly values by local date:
 // [{ date, hours: [{hr, t, p, w, d, c, r}, ...], sunrise, sunset }, ...]
 // t = temp (C), p = pressure (mb), w = wind (mph), d = wind direction (degrees),
 // c = cloud (%), r = rain (mm)
@@ -81,10 +84,25 @@ async function fetchForecast(location) {
   var forecast = await fetchJson(url, "Weather service error");
   var h = forecast.hourly;
   var daily = forecast.daily;
-  if (!h || !daily || !Array.isArray(h.time) || !Array.isArray(daily.time)) {
+  var hourlyFields = [
+    "temperature_2m", "pressure_msl", "wind_speed_10m",
+    "wind_direction_10m", "cloud_cover", "precipitation"
+  ];
+  if (!h || !daily || !Array.isArray(h.time) || !h.time.length ||
+      !Array.isArray(daily.time) || !daily.time.length ||
+      !Array.isArray(daily.sunrise) || !Array.isArray(daily.sunset) ||
+      daily.sunrise.length !== daily.time.length ||
+      daily.sunset.length !== daily.time.length) {
     throw new Error("Weather data is incomplete");
   }
+  hourlyFields.forEach(function (field) {
+    if (!Array.isArray(h[field]) || h[field].length !== h.time.length ||
+        !h[field].every(Number.isFinite)) {
+      throw new Error("Weather data is incomplete");
+    }
+  });
 
+  // Index sun times by date once so each forecast day can be joined in constant time.
   var byDate = Object.create(null);
   var sunTimesByDate = Object.create(null);
   daily.time.forEach(function (date, i) {
@@ -92,6 +110,7 @@ async function fetchForecast(location) {
   });
   h.time.forEach(function (time, i) {
     var date = time.slice(0, 10);
+    // Compact property names keep each hourly record small; see the shape above.
     (byDate[date] = byDate[date] || []).push({
       hr: +time.slice(11, 13),
       t: h.temperature_2m[i],
@@ -103,7 +122,7 @@ async function fetchForecast(location) {
     });
   });
 
-  return Object.keys(byDate).map(function (date) {
+  var days = Object.keys(byDate).map(function (date) {
     var sunTimes = sunTimesByDate[date];
     if (!sunTimes || !sunTimes.sunrise || !sunTimes.sunset) {
       throw new Error("Sunrise and sunset data is missing");
@@ -115,4 +134,6 @@ async function fetchForecast(location) {
       sunset: sunTimes.sunset
     };
   });
+  if (!days.length) throw new Error("Weather data is incomplete");
+  return days;
 }
