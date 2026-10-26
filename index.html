@@ -48,8 +48,8 @@ button.go{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 </main>
 <script>
 var DEF={name:"Stollies Lake, Theydon Mount",lat:51.6749,lon:0.1527};
-var loc=DEF;
-try{var s=JSON.parse(localStorage.getItem("fwloc")||"null");if(s&&s.lat)loc=s;}catch(e){}
+var loc=DEF,mode="gps",gpsNote="";
+try{var s=JSON.parse(localStorage.getItem("fwloc")||"null");if(s&&s.lat)loc=s;mode=localStorage.getItem("fwmode")||"gps";}catch(e){}
 function $(i){return document.getElementById(i);}
 function msg(t){$("msg").textContent=t;}
 function mean(a){return a.reduce(function(x,y){return x+y;},0)/a.length;}
@@ -123,23 +123,34 @@ async function load(){
    '<div class="cond">Wind ~'+x.wind+' mph · '+(x.rain>=0.2?'Rain '+x.rain.toFixed(1)+' mm':'Dry')+' · '+x.moon+'</div>'+
    '<div class="bar"><i style="width:'+x.score+'%;background:'+colour(x.score)+'"></i></div></div>';
   }).join("");
-  msg("Updated "+new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}));
+  msg("Updated "+new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})+gpsNote);
  }catch(e){msg("Couldn’t load the forecast: "+e.message+". Check your connection and try Refresh.");}
 }
-function setLoc(l){loc=l;try{localStorage.setItem("fwloc",JSON.stringify(l));}catch(e){}load();}
+function setLoc(l,m){loc=l;mode=m||"manual";gpsNote="";try{localStorage.setItem("fwloc",JSON.stringify(l));localStorage.setItem("fwmode",mode);}catch(e){}load();}
 
 $("f").onsubmit=async function(e){
  e.preventDefault();var q=$("q").value.trim();if(!q)return;
  msg("Finding "+q+"…");
  try{setLoc(await geocode(q));$("q").value="";}catch(err){msg(err.message+". Try a full postcode or a nearby town.");}
 };
-$("ref").onclick=load;
-$("gps").onclick=function(){
- if(!navigator.geolocation){msg("Location isn’t available on this device.");return;}
+async function nameFor(lat,lon){
+ try{var j=await (await fetch("https://api.postcodes.io/postcodes?lon="+lon+"&lat="+lat+"&limit=1")).json();
+  if(j.result&&j.result[0])return "Near "+(j.result[0].admin_ward||j.result[0].admin_district);}catch(e){}
+ return "My location";
+}
+function useGps(auto){
+ if(!navigator.geolocation){gpsNote=" · location not available here";if(auto)load();else msg("Location isn’t available on this device.");return;}
  msg("Getting your location…");
- navigator.geolocation.getCurrentPosition(function(p){setLoc({name:"My location",lat:p.coords.latitude,lon:p.coords.longitude});},function(){msg("Couldn’t get your location. Check location permission, or type a postcode.");},{timeout:10000});
-};
-load();
+ navigator.geolocation.getCurrentPosition(async function(p){
+  setLoc({name:await nameFor(p.coords.latitude,p.coords.longitude),lat:p.coords.latitude,lon:p.coords.longitude},"gps");
+ },function(){
+  if(auto){gpsNote=" · location blocked, showing "+loc.name;load();}
+  else msg("Couldn’t get your location. Check location permission, or type a postcode.");
+ },{timeout:10000,maximumAge:600000});
+}
+$("gps").onclick=function(){useGps(false);};
+$("ref").onclick=function(){if(mode==="gps")useGps(true);else load();};
+if(mode==="gps")useGps(true);else load();
 </script>
 </body>
 </html>
