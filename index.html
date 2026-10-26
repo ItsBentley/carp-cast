@@ -19,7 +19,19 @@
 
     <!-- Location search: postcode or town name -->
     <form id="search-form">
-      <input id="search-input" placeholder="Postcode or town" autocomplete="off" aria-label="Postcode or town">
+      <div class="search-field">
+        <input
+          id="search-input"
+          placeholder="Postcode or town"
+          autocomplete="off"
+          aria-label="Postcode or town"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-controls="search-suggestions"
+          aria-expanded="false"
+        >
+        <ul id="search-suggestions" class="suggestions" role="listbox" hidden></ul>
+      </div>
       <button class="go" type="submit">Search</button>
     </form>
 

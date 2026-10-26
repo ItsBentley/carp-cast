@@ -10,6 +10,23 @@ async function fetchJson(url, errorMessage) {
   return response.json();
 }
 
+function placeName(place) {
+  return place.name + (place.admin1 ? ", " + place.admin1 : "");
+}
+
+async function searchPlaces(query, count) {
+  var url = "https://geocoding-api.open-meteo.com/v1/search?name=" + encodeURIComponent(query) +
+            "&count=" + count + "&language=en&countryCode=GB";
+  var data = await fetchJson(url, "Place lookup failed");
+  return (data.results || []).map(function (place) {
+    return {
+      name: placeName(place),
+      lat: place.latitude,
+      lon: place.longitude
+    };
+  });
+}
+
 // Turns a postcode or town name into {name, lat, lon}. Throws if not found.
 async function geocode(query) {
   var compact = query.toUpperCase().replace(/\s+/g, "");
@@ -33,16 +50,9 @@ async function geocode(query) {
   }
 
   // Anything else is treated as a town or place name
-  var url = "https://geocoding-api.open-meteo.com/v1/search?name=" + encodeURIComponent(query) +
-            "&count=1&language=en&countryCode=GB";
-  var place = await fetchJson(url, "Place lookup failed");
-  if (!place.results || !place.results.length) throw new Error("Place not found");
-  var p = place.results[0];
-  return {
-    name: p.name + (p.admin1 ? ", " + p.admin1 : ""),
-    lat: p.latitude,
-    lon: p.longitude
-  };
+  var places = await searchPlaces(query, 1);
+  if (!places.length) throw new Error("Place not found");
+  return places[0];
 }
 
 // Finds a friendly name ("Near Theydon Bois") for GPS coordinates
