@@ -4,6 +4,11 @@
    - Open-Meteo: town search and the weather forecast
    ========================================================================== */
 
+var FORECAST_HOURLY_FIELDS = [
+  "temperature_2m", "pressure_msl", "wind_speed_10m",
+  "wind_direction_10m", "cloud_cover", "precipitation"
+];
+
 // Fetch JSON from a service and surface HTTP failures to the caller.
 async function fetchJson(url, errorMessage) {
   var response = await fetch(url);
@@ -70,24 +75,49 @@ async function nameForCoordinates(lat, lon) {
   return "My location";
 }
 
-// Download weather and sunrise/sunset data, then group hourly values by local date:
+// Use the app's forecast timezone rather than the device timezone for date boundaries.
+function londonDateString(date) {
+  var parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(date);
+  var values = {};
+  parts.forEach(function (part) { values[part.type] = part.value; });
+  return values.year + "-" + values.month + "-" + values.day;
+}
+
+// Do date arithmetic at UTC noon to avoid daylight-saving and timezone rollover.
+function addDaysToDate(dateString, days) {
+  var date = new Date(dateString + "T12:00:00Z");
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function isValidDateString(dateString) {
+  if (typeof dateString !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return false;
+  var date = new Date(dateString + "T00:00:00Z");
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === dateString;
+}
+
+function weatherUrl(isHistorical, location, startDate, endDate) {
+  var host = isHistorical ? "archive-api.open-meteo.com" : "api.open-meteo.com";
+  var endpoint = isHistorical ? "archive" : "forecast";
+  return "https://" + host + "/v1/" + endpoint +
+    "?latitude=" + location.lat + "&longitude=" + location.lon +
+    "&hourly=" + FORECAST_HOURLY_FIELDS.join(",") +
+    "&daily=sunrise,sunset&wind_speed_unit=mph&timezone=Europe%2FLondon" +
+    "&start_date=" + startDate + "&end_date=" + endDate;
+}
+
+// Convert the API's parallel arrays into the per-day structure used by scoring:
 // [{ date, hours: [{hr, t, p, w, d, c, r}, ...], sunrise, sunset }, ...]
 // t = temp (C), p = pressure (mb), w = wind (mph), d = wind direction (degrees),
 // c = cloud (%), r = rain (mm)
-async function fetchForecast(location) {
-  var url = "https://api.open-meteo.com/v1/forecast" +
-    "?latitude=" + location.lat + "&longitude=" + location.lon +
-    "&hourly=temperature_2m,pressure_msl,wind_speed_10m,wind_direction_10m,cloud_cover,precipitation" +
-    "&daily=sunrise,sunset" +
-    "&wind_speed_unit=mph&timezone=Europe%2FLondon&forecast_days=" + FORECAST_DAYS;
-
-  var forecast = await fetchJson(url, "Weather service error");
+function groupWeatherByDay(forecast) {
   var h = forecast.hourly;
   var daily = forecast.daily;
-  var hourlyFields = [
-    "temperature_2m", "pressure_msl", "wind_speed_10m",
-    "wind_direction_10m", "cloud_cover", "precipitation"
-  ];
   if (!h || !daily || !Array.isArray(h.time) || !h.time.length ||
       !Array.isArray(daily.time) || !daily.time.length ||
       !Array.isArray(daily.sunrise) || !Array.isArray(daily.sunset) ||
@@ -95,7 +125,7 @@ async function fetchForecast(location) {
       daily.sunset.length !== daily.time.length) {
     throw new Error("Weather data is incomplete");
   }
-  hourlyFields.forEach(function (field) {
+  FORECAST_HOURLY_FIELDS.forEach(function (field) {
     if (!Array.isArray(h[field]) || h[field].length !== h.time.length ||
         !h[field].every(Number.isFinite)) {
       throw new Error("Weather data is incomplete");
@@ -135,5 +165,49 @@ async function fetchForecast(location) {
     };
   });
   if (!days.length) throw new Error("Weather data is incomplete");
+  return days;
+}
+
+// Historical dates use the archive API; today and later use the forecast API.
+async function fetchForecast(location, startDate) {
+  var today = londonDateString(new Date());
+  var latestStart = addDaysToDate(today, MAX_FORECAST_DAYS - FORECAST_DAYS);
+  if (!isValidDateString(startDate) ||
+      startDate < "1940-01-01" || startDate > latestStart) {
+    throw new Error("Choose a start date between 1940-01-01 and " + latestStart);
+  }
+  var endDate = addDaysToDate(startDate, FORECAST_DAYS - 1);
+  var requests = [];
+
+  // Split ranges that cross today so past days come from the archive and future days from forecast.
+  if (startDate < today) {
+    var historicalEnd = endDate < today ? endDate : addDaysToDate(today, -1);
+    requests.push(fetchJson(
+      weatherUrl(true, location, startDate, historicalEnd),
+      "Historical weather service error"
+    ).then(groupWeatherByDay));
+  }
+
+  if (endDate >= today) {
+    var forecastStart = startDate > today ? startDate : today;
+    requests.push(fetchJson(
+      weatherUrl(false, location, forecastStart, endDate),
+      "Weather service error"
+    ).then(groupWeatherByDay));
+  }
+
+  // Preserve chronological order and reject API responses with missing days.
+  var days = (await Promise.all(requests)).reduce(function (all, range) {
+    return all.concat(range);
+  }, []).sort(function (a, b) {
+    return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+  });
+  var completeRange = days.length === FORECAST_DAYS &&
+    days.every(function (day, index) {
+      return day.date === addDaysToDate(startDate, index);
+    });
+  if (!completeRange || days[0].date !== startDate || days[days.length - 1].date !== endDate) {
+    throw new Error("Weather data is not available for the entire selected date range");
+  }
   return days;
 }

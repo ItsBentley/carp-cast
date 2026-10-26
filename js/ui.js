@@ -89,7 +89,7 @@ function renderForecast(days) {
   // Best day summary
   $("best").hidden = false;
   $("best").innerHTML =
-    '<div>Best day this week</div>' +
+    '<div>Best day in this range</div>' +
     '<div class="big">' + best.label + '</div>' +
     '<p>' + verdict(best.score) + ' (' + best.score + '/100) · pressure ' + best.trend +
     ' at ' + best.p1 + ' mb, ' + best.sky.toLowerCase() + ', ' + best.hi + '°C</p>';

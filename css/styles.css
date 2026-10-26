@@ -173,6 +173,23 @@ button.go:hover {
   font-size: 0.9rem;
 }
 
+/* Start date for the seven-day forecast window */
+.date-picker {
+  display: grid;
+  gap: 5px;
+  margin: 0 0 14px;
+}
+
+.date-picker label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.date-picker small {
+  color: var(--mute);
+  font-size: 0.78rem;
+}
+
 /* ---- Place name and status message ---- */
 #place {
   font-weight: 800;

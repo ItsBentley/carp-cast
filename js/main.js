@@ -2,19 +2,31 @@
    main.js: app startup, forecast loading, and search/location event handlers
    ========================================================================== */
 
+var forecastRequest = 0;
+
 // Run the data pipeline: download -> summarise -> render, then report its status.
 async function loadForecast() {
+  var request = ++forecastRequest;
   setPlace(state.location.name);
   showMessage("Loading forecast…");
   try {
-    var days = (await fetchForecast(state.location)).map(summariseDay);
+    var days = (await fetchForecast(state.location, $("start-date").value)).map(summariseDay);
+    if (request !== forecastRequest) return;
     renderForecast(days);
     var time = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
     showMessage("Updated " + time + state.gpsNote);
   } catch (e) {
-    showMessage("Couldn’t load the forecast: " + e.message + ". Check your connection and try Refresh.");
+    if (request !== forecastRequest) return;
+    showMessage("Couldn’t load weather: " + e.message + ". Try Refresh or choose another date.");
   }
 }
+
+// Default to today, while preventing future windows that exceed the API's range.
+var today = londonDateString(new Date());
+$("start-date").value = today;
+$("start-date").min = "1940-01-01";
+$("start-date").max = addDaysToDate(today, MAX_FORECAST_DAYS - FORECAST_DAYS);
+$("start-date").onchange = loadForecast;
 
 var suggestionsTimer;
 var suggestionsRequest = 0;

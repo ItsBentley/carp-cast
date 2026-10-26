@@ -41,6 +41,12 @@
       <button type="button" id="refresh-btn">Refresh</button>
     </div>
 
+    <div class="date-picker">
+      <label for="start-date">First day of 7-day weather range</label>
+      <input id="start-date" type="date">
+      <small>Past dates use archived weather; recent dates may not be available yet.</small>
+    </div>
+
     <!-- Current place and live loading/error/updated status. -->
     <div id="place"></div>
     <p id="msg"></p>
@@ -54,7 +60,7 @@
     <div id="list"></div>
 
     <p class="note">
-      Live forecast from Open-Meteo. Pressure is sea-level mb, shown from 6am to 9pm each day.
+      Weather data from Open-Meteo. Pressure is sea-level mb, shown from 6am to 9pm each day.
       The score weighs pressure trend most, then wind, sky, temperature and moon phase,
       with a small penalty for very high or very low pressure. Suggested times compare
       three-hour windows around dawn and dusk. The downwind bank is only a rule of thumb;

@@ -17,6 +17,8 @@ var STORAGE_KEYS = {
 
 // Forecast horizon returned by Open-Meteo.
 var FORECAST_DAYS = 7;
+// Open-Meteo's forecast endpoint supports up to 16 days from today.
+var MAX_FORECAST_DAYS = 16;
 
 // Pressure trend is measured between these hours (24-hour local time).
 var PRESSURE_START_HOUR = 6;

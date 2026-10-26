@@ -153,28 +153,50 @@ function bestFishingWindow(day, moonPoints) {
 // ---- Summarise one day of hourly data into a scored day ----
 function summariseDay(day) {
   var hours = day.hours;
-  var daytime = hours.filter(function (h) {
-    return h.hr >= DAYTIME_START_HOUR && h.hr <= DAYTIME_END_HOUR;
-  });
+  var first = hours[0];
+  var last = hours[hours.length - 1];
+  var foundPressureStart = false;
+  var foundPressureEnd = false;
+  var daytimeCount = 0;
+  var windTotal = 0;
+  var cloudTotal = 0;
+  var rain = 0;
+  var daytimeDirections = [];
+  var high = -Infinity;
+  var low = Infinity;
 
-  // Pressure at the start and end of the day (falls back to first/last hour)
-  var first = hours.filter(function (h) { return h.hr === PRESSURE_START_HOUR; })[0] || hours[0];
-  var last = hours.filter(function (h) { return h.hr === PRESSURE_END_HOUR; })[0] || hours[hours.length - 1];
+  // Aggregate the daily metrics in one pass instead of repeatedly filtering the hours.
+  hours.forEach(function (hour) {
+    if (!foundPressureStart && hour.hr === PRESSURE_START_HOUR) {
+      first = hour;
+      foundPressureStart = true;
+    }
+    if (!foundPressureEnd && hour.hr === PRESSURE_END_HOUR) {
+      last = hour;
+      foundPressureEnd = true;
+    }
+    high = Math.max(high, hour.t);
+    low = Math.min(low, hour.t);
+    if (hour.hr >= DAYTIME_START_HOUR && hour.hr <= DAYTIME_END_HOUR) {
+      daytimeCount++;
+      windTotal += hour.w;
+      cloudTotal += hour.c;
+      rain += hour.r;
+      daytimeDirections.push(hour.d);
+    }
+  });
+  if (!daytimeCount) throw new Error("Daytime weather data is incomplete");
+
   var rate = (last.p - first.p) / Math.max(1, last.hr - first.hr);
   var p0 = Math.round(first.p);
   var p1 = Math.round(last.p);
 
-  // Daytime averages
-  var wind = Math.round(mean(daytime.map(function (h) { return h.w; })));
-  var windDirectionDegrees = meanWindDirection(daytime.map(function (h) { return h.d; }));
+  var wind = Math.round(windTotal / daytimeCount);
+  var windDirectionDegrees = meanWindDirection(daytimeDirections);
   var windDirection = compassDirection(windDirectionDegrees);
-  var cloud = mean(daytime.map(function (h) { return h.c; }));
-  var rain = daytime.reduce(function (sum, h) { return sum + h.r; }, 0);
-
-  // Temperature range over the whole day
-  var temps = hours.map(function (h) { return h.t; });
-  var hi = Math.round(Math.max.apply(null, temps));
-  var lo = Math.round(Math.min.apply(null, temps));
+  var cloud = cloudTotal / daytimeCount;
+  var hi = Math.round(high);
+  var lo = Math.round(low);
 
   var sky = skyInfo(rain, cloud);
   var moon = moonInfo(day.date);
@@ -187,7 +209,11 @@ function summariseDay(day) {
     : null;
 
   return {
-    label: new Date(day.date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric" }),
+    label: new Date(day.date + "T12:00:00").toLocaleDateString("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      timeZone: "Europe/London"
+    }),
     hi: hi, lo: lo, wind: wind, windDirection: windDirection,
     windDirectionDegrees: windDirectionDegrees, rain: rain,
     sky: sky[0], moon: moon.name,
