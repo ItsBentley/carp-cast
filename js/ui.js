@@ -19,6 +19,13 @@ function scoreColour(score) {
     score >= 25 ? "var(--score-fair)" : "var(--score-slow)";
 }
 
+function weatherIcon(sky) {
+  if (sky === "Clear") return "☀";
+  if (sky === "Rain" || sky === "Wet") return "🌧";
+  if (sky === "Partly cloudy") return "⛅";
+  return "☁";
+}
+
 // Draws the "best day" card and one card per day
 function renderForecast(days) {
   var best = days.reduce(function (a, b) { return b.score > a.score ? b : a; });
@@ -34,26 +41,43 @@ function renderForecast(days) {
   // Daily cards
   $("list").innerHTML = days.map(function (d) {
     var colour = scoreColour(d.score);
-    var weatherText = d.sky + ", " + d.hi + "° / " + d.lo + "°C";
-    if (d.rain >= 0.2) weatherText += " · Rainfall: " + d.rain.toFixed(1) + " mm";
-    return '<div class="row' + (d === best ? ' top' : '') + '">' +
-      '<div class="day">' + d.label + '</div>' +
-      '<div class="sc" style="color:' + colour + '">' + d.score + '<small>' + verdict(d.score) + '</small></div>' +
-      '<div class="cond">Pressure: ' + d.p0 + ' to ' + d.p1 + ' mb, ' + d.trend + '</div>' +
-      '<div class="cond">Weather: ' + weatherText + '</div>' +
-      '<div class="cond">Wind: ~' + d.wind + ' mph · Direction: ' + d.windDirection + '</div>' +
-      '<div class="cond">Moon: ' + d.moon + '</div>' +
-      '<div class="cond">Sun Rise: ' + d.sunrise.slice(11, 16) +
-      ' · Sun Set: ' + d.sunset.slice(11, 16) + '</div>' +
-      '<div class="cond">Suggested time: ' +
-      (d.fishingWindow
-        ? d.fishingWindow.name + ' (' + d.fishingWindow.start + '–' + d.fishingWindow.end + ')'
-        : 'No suitable forecast window available') + '</div>' +
-      '<div class="cond">Bank to try: ' +
-      (d.bankDirection
-        ? d.bankDirection + ' side (downwind, if accessible)'
-        : 'No clear wind-based side') + '</div>' +
+    var rainfall = d.rain >= 0.2
+      ? '<div class="rainfall">Rainfall <strong>' + d.rain.toFixed(1) + ' mm</strong></div>'
+      : "";
+    var fishingTime = d.fishingWindow
+      ? d.fishingWindow.name + " · " + d.fishingWindow.start + "–" + d.fishingWindow.end
+      : "No suitable forecast window available";
+    var bank = d.bankDirection
+      ? d.bankDirection + " side, if accessible"
+      : "No clear wind-based side";
+
+    return '<article class="row' + (d === best ? ' top' : '') + '">' +
+      '<div class="forecast-header">' +
+        '<div class="forecast-main">' +
+          '<div class="day">' + d.label + '</div>' +
+          '<div class="forecast-condition"><span aria-hidden="true">' + weatherIcon(d.sky) +
+            '</span> ' + d.sky + '</div>' +
+          '<div class="temperature">High ' + d.hi + '° <span>·</span> Low ' + d.lo + '°C</div>' +
+          rainfall +
+        '</div>' +
+        '<div class="sc" style="color:' + colour + '">' +
+          d.score + '<small>' + verdict(d.score) + '</small>' +
+        '</div>' +
+      '</div>' +
+      '<div class="weather-metrics">' +
+        '<div class="metric"><span>Wind</span><strong>~' + d.wind + ' mph</strong><small>' +
+          d.windDirection + '</small></div>' +
+        '<div class="metric"><span>Pressure</span><strong>' + d.p1 + ' mb</strong><small>' +
+          d.trend + '</small></div>' +
+        '<div class="metric"><span>Moon phase</span><strong>' + d.moon + '</strong></div>' +
+      '</div>' +
+      '<div class="sun-times"><span>Sunrise <strong>' + d.sunrise.slice(11, 16) +
+        '</strong></span><span>Sunset <strong>' + d.sunset.slice(11, 16) + '</strong></span></div>' +
+      '<div class="fishing-advice">' +
+        '<div><span>Best time</span><strong>' + fishingTime + '</strong></div>' +
+        '<div><span>Bank to try</span><strong>' + bank + '</strong></div>' +
+      '</div>' +
       '<div class="bar"><i style="width:' + d.score + '%;background:' + colour + '"></i></div>' +
-      '</div>';
+      '</article>';
   }).join("");
 }

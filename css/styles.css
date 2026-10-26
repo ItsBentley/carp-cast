@@ -208,17 +208,19 @@ button.go:hover {
   opacity: 0.85;
 }
 
+.section-title {
+  margin: 20px 0 10px;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
 /* ---- Daily forecast cards ---- */
 .row {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 12px 14px;
+  padding: 16px;
   margin-bottom: 10px;
-  display: grid;
-  grid-template-columns: 1fr auto;   /* details on the left, score on the right */
-  gap: 2px 12px;
-  align-items: center;
 }
 
 /* Highlights the best day */
@@ -227,24 +229,57 @@ button.go:hover {
   border-width: 2px;
 }
 
-.day {
-  font-weight: 800;
-  font-size: 1.05rem;
+.forecast-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
 }
 
-.cond {
+.forecast-main {
+  min-width: 0;
+}
+
+.day {
+  font-weight: 800;
+  font-size: 1.2rem;
+}
+
+.forecast-condition {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  color: var(--ink);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.forecast-condition span {
+  font-size: 1.25rem;
+}
+
+.temperature,
+.rainfall {
   color: var(--mute);
   font-size: 0.9rem;
-  grid-column: 1;
+  margin-top: 4px;
+}
+
+.temperature span {
+  color: var(--line);
+}
+
+.rainfall strong {
+  color: var(--ink);
 }
 
 /* Big score number on the right of each card */
 .sc {
-  grid-row: 1 / 4;
-  grid-column: 2;
-  text-align: right;
+  flex: 0 0 auto;
+  text-align: center;
   font-weight: 800;
-  font-size: 2.8rem;
+  font-size: 2.5rem;
   line-height: 1;
 }
 
@@ -256,9 +291,78 @@ button.go:hover {
   text-align: center;
 }
 
+.weather-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 18px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.metric {
+  min-width: 0;
+  padding: 0 10px;
+}
+
+.metric:first-child {
+  padding-left: 0;
+}
+
+.metric + .metric {
+  border-left: 1px solid var(--line);
+}
+
+.metric > span,
+.metric small,
+.fishing-advice span {
+  display: block;
+  color: var(--mute);
+  font-size: 0.78rem;
+}
+
+.metric strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.metric small {
+  margin-top: 2px;
+}
+
+.sun-times {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 0;
+  color: var(--mute);
+  font-size: 0.85rem;
+}
+
+.sun-times strong {
+  color: var(--ink);
+  margin-left: 4px;
+}
+
+.fishing-advice {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 10px;
+}
+
+.fishing-advice strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.9rem;
+}
+
 /* Score progress bar along the bottom of each card */
 .bar {
-  grid-column: 1 / 3;
   height: 6px;
   border-radius: 3px;
   background: var(--line);
