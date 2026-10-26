@@ -67,8 +67,83 @@ function trendWord(ratePerHour) {
   return "rising fast";
 }
 
+function meanWindDirection(degrees) {
+  var validDirections = degrees.filter(function (direction) {
+    return Number.isFinite(direction);
+  });
+  if (!validDirections.length) return null;
+
+  var radians = validDirections.map(function (direction) {
+    return direction * Math.PI / 180;
+  });
+  var sinMean = mean(radians.map(Math.sin));
+  var cosMean = mean(radians.map(Math.cos));
+  if (Math.abs(sinMean) < 1e-10 && Math.abs(cosMean) < 1e-10) return null;
+
+  return (Math.atan2(sinMean, cosMean) * 180 / Math.PI + 360) % 360;
+}
+
+function compassDirection(degrees) {
+  if (degrees === null) return "Variable";
+  var directions = ["North", "Northeast", "East", "Southeast", "South", "Southwest", "West", "Northwest"];
+  return directions[Math.round(degrees / 45) % directions.length];
+}
+
 function verdict(score) {
-  return score >= 75 ? "Great" : score >= 55 ? "Good" : score >= 35 ? "Fair" : "Slow";
+  return score >= 75 ? "Great" : score >= 50 ? "Good" : score >= 25 ? "Fair" : "Slow";
+}
+
+function scoreConditions(wind, rain, cloud, temperature, rate, pressure, moonPoints) {
+  var base = windPoints(wind) + skyInfo(rain, cloud)[1] +
+    tempPoints(temperature) + moonPoints;
+  return Math.round(base * 60 / 70 + pressurePoints(rate, pressure));
+}
+
+function formatClockTime(minutes) {
+  var normalized = (minutes % 1440 + 1440) % 1440;
+  var hours = Math.floor(normalized / 60);
+  var mins = normalized % 60;
+  return ("0" + hours).slice(-2) + ":" + ("0" + mins).slice(-2);
+}
+
+function scoreFishingWindow(hours, anchor, beforeMinutes, afterMinutes, name, moonPoints) {
+  var anchorParts = anchor.slice(11, 16).split(":");
+  var anchorMinutes = Number(anchorParts[0]) * 60 + Number(anchorParts[1]);
+  var start = anchorMinutes - beforeMinutes;
+  var end = anchorMinutes + afterMinutes;
+  var windowHours = hours.filter(function (hour) {
+    var time = hour.hr * 60;
+    return time >= start && time <= end;
+  });
+  if (windowHours.length < 2) return null;
+
+  var first = windowHours[0];
+  var last = windowHours[windowHours.length - 1];
+  var duration = last.hr - first.hr;
+  if (duration <= 0) return null;
+
+  var wind = mean(windowHours.map(function (hour) { return hour.w; }));
+  var rain = windowHours.reduce(function (sum, hour) { return sum + hour.r; }, 0);
+  var cloud = mean(windowHours.map(function (hour) { return hour.c; }));
+  var temperature = mean(windowHours.map(function (hour) { return hour.t; }));
+  var pressure = mean(windowHours.map(function (hour) { return hour.p; }));
+  var rate = (last.p - first.p) / duration;
+
+  return {
+    name: name,
+    start: formatClockTime(start),
+    end: formatClockTime(end),
+    score: scoreConditions(wind, rain, cloud, temperature, rate, pressure, moonPoints),
+    windDirection: meanWindDirection(windowHours.map(function (hour) { return hour.d; }))
+  };
+}
+
+function bestFishingWindow(day, moonPoints) {
+  var dawn = scoreFishingWindow(day.hours, day.sunrise, 60, 120, "Dawn", moonPoints);
+  var dusk = scoreFishingWindow(day.hours, day.sunset, 120, 60, "Dusk", moonPoints);
+  if (!dawn) return dusk;
+  if (!dusk) return dawn;
+  return dawn.score >= dusk.score ? dawn : dusk;
 }
 
 // ---- Summarise one day of hourly data into a scored day ----
@@ -87,6 +162,7 @@ function summariseDay(day) {
 
   // Daytime averages
   var wind = Math.round(mean(daytime.map(function (h) { return h.w; })));
+  var windDirection = compassDirection(meanWindDirection(daytime.map(function (h) { return h.d; })));
   var cloud = mean(daytime.map(function (h) { return h.c; }));
   var rain = daytime.reduce(function (sum, h) { return sum + h.r; }, 0);
 
@@ -97,16 +173,21 @@ function summariseDay(day) {
 
   var sky = skyInfo(rain, cloud);
   var moon = moonInfo(day.date);
+  var fishingWindow = bestFishingWindow(day, moon.points);
 
-  // Everything except pressure is scaled from 70 down to 60, pressure adds up to 40
-  var base = windPoints(wind) + sky[1] + tempPoints((hi + lo) / 2) + moon.points;
-  var score = Math.round(base * 60 / 70 + pressurePoints(rate, (p0 + p1) / 2));
+  var score = scoreConditions(wind, rain, cloud, (hi + lo) / 2, rate, (p0 + p1) / 2, moon.points);
+  var bankDirection = fishingWindow && Number.isFinite(fishingWindow.windDirection)
+    ? compassDirection((fishingWindow.windDirection + 180) % 360)
+    : null;
 
   return {
     label: new Date(day.date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric" }),
-    hi: hi, lo: lo, wind: wind, rain: rain,
+    hi: hi, lo: lo, wind: wind, windDirection: windDirection, rain: rain,
     sky: sky[0], moon: moon.name,
     p0: p0, p1: p1, trend: trendWord(rate),
+    sunrise: day.sunrise, sunset: day.sunset,
+    fishingWindow: fishingWindow,
+    bankDirection: bankDirection,
     score: score
   };
 }

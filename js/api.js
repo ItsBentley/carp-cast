@@ -53,16 +53,20 @@ async function nameForCoordinates(lat, lon) {
 
 // Downloads the hourly forecast and returns it grouped by day:
 // [{ date: "2026-10-26", hours: [{hr, t, p, w, c, r}, ...] }, ...]
-// t = temp (C), p = pressure (mb), w = wind (mph), c = cloud (%), r = rain (mm)
+// t = temp (C), p = pressure (mb), w = wind (mph), d = wind direction (degrees),
+// c = cloud (%), r = rain (mm)
 async function fetchForecast(location) {
   var url = "https://api.open-meteo.com/v1/forecast" +
     "?latitude=" + location.lat + "&longitude=" + location.lon +
-    "&hourly=temperature_2m,pressure_msl,wind_speed_10m,cloud_cover,precipitation" +
+    "&hourly=temperature_2m,pressure_msl,wind_speed_10m,wind_direction_10m,cloud_cover,precipitation" +
+    "&daily=sunrise,sunset" +
     "&wind_speed_unit=mph&timezone=Europe%2FLondon&forecast_days=" + FORECAST_DAYS;
 
   var res = await fetch(url);
   if (!res.ok) throw new Error("Weather service error");
-  var h = (await res.json()).hourly;
+  var forecast = await res.json();
+  var h = forecast.hourly;
+  var daily = forecast.daily;
 
   var byDate = {};
   h.time.forEach(function (time, i) {
@@ -72,12 +76,19 @@ async function fetchForecast(location) {
       t: h.temperature_2m[i],
       p: h.pressure_msl[i],
       w: h.wind_speed_10m[i],
+      d: h.wind_direction_10m[i],
       c: h.cloud_cover[i],
       r: h.precipitation[i]
     });
   });
 
   return Object.keys(byDate).map(function (date) {
-    return { date: date, hours: byDate[date] };
+    var dayIndex = daily.time.indexOf(date);
+    return {
+      date: date,
+      hours: byDate[date],
+      sunrise: daily.sunrise[dayIndex],
+      sunset: daily.sunset[dayIndex]
+    };
   });
 }

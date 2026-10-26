@@ -12,9 +12,11 @@ function showMessage(text) {
   $("msg").textContent = text;
 }
 
-// Score colour: green = good, amber = fair, red = poor
+// Score colours match the verdict bands
 function scoreColour(score) {
-  return score >= 55 ? "var(--ok)" : score >= 35 ? "var(--mid)" : "var(--acc)";
+  return score >= 75 ? "var(--score-great)" :
+    score >= 50 ? "var(--score-good)" :
+    score >= 25 ? "var(--score-fair)" : "var(--score-slow)";
 }
 
 // Draws the "best day" card and one card per day
@@ -32,13 +34,25 @@ function renderForecast(days) {
   // Daily cards
   $("list").innerHTML = days.map(function (d) {
     var colour = scoreColour(d.score);
-    var rainText = d.rain >= 0.2 ? "Rain " + d.rain.toFixed(1) + " mm" : "Dry";
+    var weatherText = d.sky + ", " + d.hi + "° / " + d.lo + "°C";
+    if (d.rain >= 0.2) weatherText += " · Rainfall: " + d.rain.toFixed(1) + " mm";
     return '<div class="row' + (d === best ? ' top' : '') + '">' +
       '<div class="day">' + d.label + '</div>' +
       '<div class="sc" style="color:' + colour + '">' + d.score + '<small>' + verdict(d.score) + '</small></div>' +
-      '<div class="cond">Pressure ' + d.p0 + ' to ' + d.p1 + ' mb, ' + d.trend + '</div>' +
-      '<div class="cond">' + d.sky + ', ' + d.hi + '° / ' + d.lo + '°C</div>' +
-      '<div class="cond">Wind ~' + d.wind + ' mph · ' + rainText + ' · ' + d.moon + '</div>' +
+      '<div class="cond">Pressure: ' + d.p0 + ' to ' + d.p1 + ' mb, ' + d.trend + '</div>' +
+      '<div class="cond">Weather: ' + weatherText + '</div>' +
+      '<div class="cond">Wind: ~' + d.wind + ' mph · Direction: ' + d.windDirection + '</div>' +
+      '<div class="cond">Moon: ' + d.moon + '</div>' +
+      '<div class="cond">Sun Rise: ' + d.sunrise.slice(11, 16) +
+      ' · Sun Set: ' + d.sunset.slice(11, 16) + '</div>' +
+      '<div class="cond">Suggested time: ' +
+      (d.fishingWindow
+        ? d.fishingWindow.name + ' (' + d.fishingWindow.start + '–' + d.fishingWindow.end + ')'
+        : 'No suitable forecast window available') + '</div>' +
+      '<div class="cond">Bank to try: ' +
+      (d.bankDirection
+        ? d.bankDirection + ' side (downwind, if accessible)'
+        : 'No clear wind-based side') + '</div>' +
       '<div class="bar"><i style="width:' + d.score + '%;background:' + colour + '"></i></div>' +
       '</div>';
   }).join("");

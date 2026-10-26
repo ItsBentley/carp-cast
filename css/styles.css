@@ -2,30 +2,20 @@
    Carp Cast styles
    ========================================================================== */
 
-/* ---- Colours (light theme, with a dark theme for dark-mode phones) ---- */
+/* ---- Colours shared with Fish Weight Calculator ---- */
 :root {
-  --bg: #e3ece8;     /* page background */
-  --ink: #11312c;    /* main text */
-  --mute: #5b7670;   /* secondary text */
-  --card: #f4f8f6;   /* card background */
-  --line: #c3d3cd;   /* borders */
-  --acc: #d8362b;    /* poor score */
-  --ok: #2f7d5b;     /* good score */
-  --mid: #b98a1d;    /* fair score */
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0d2326;
-    --ink: #e2eeea;
-    --mute: #8fabA5;
-    --card: #143034;
-    --line: #25474b;
-    --acc: #ff6a55;
-    --ok: #5fc197;
-    --mid: #e0b24a;
-    color-scheme: dark;
-  }
+  --bg: #171c21;
+  --ink: #f1f4f6;
+  --mute: #b0bdc6;
+  --card: #232a31;
+  --line: #3b4852;
+  --brand: #006a9f;
+  --brand-hover: #087ead;
+  --score-slow: #ffffff;
+  --score-fair: #ff756b;
+  --score-good: #f0bd58;
+  --score-great: #71cb91;
+  color-scheme: dark;
 }
 
 /* ---- Base page ---- */
@@ -82,11 +72,26 @@ button {
   font-weight: 600;
 }
 
+input:focus-visible,
+button:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+
 /* Main "Search" button */
 button.go {
-  background: var(--ink);
-  color: var(--bg);
-  border-color: var(--ink);
+  background: var(--brand);
+  color: #ffffff;
+  border-color: var(--brand);
+}
+
+button.go:hover {
+  background: var(--brand-hover);
+  border-color: var(--brand-hover);
+}
+
+.tools button:hover {
+  border-color: var(--brand);
 }
 
 /* "Use my location" and "Refresh" row */
@@ -117,8 +122,8 @@ button.go {
 
 /* ---- "Best day" summary card ---- */
 .best {
-  background: var(--ink);
-  color: var(--bg);
+  background: var(--brand);
+  color: #ffffff;
   border-radius: 16px;
   padding: 18px;
   margin-bottom: 16px;
@@ -151,7 +156,7 @@ button.go {
 
 /* Highlights the best day */
 .row.top {
-  border-color: var(--ok);
+  border-color: var(--brand);
   border-width: 2px;
 }
 
@@ -172,15 +177,16 @@ button.go {
   grid-column: 2;
   text-align: right;
   font-weight: 800;
-  font-size: 1.8rem;
+  font-size: 2.8rem;
   line-height: 1;
 }
 
 .sc small {
   display: block;
-  font-size: 0.75rem;
+  font-size: 1.05rem;
   font-weight: 600;
   margin-top: 3px;
+  text-align: center;
 }
 
 /* Score progress bar along the bottom of each card */
