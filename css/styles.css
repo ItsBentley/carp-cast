@@ -176,7 +176,9 @@ button.go:hover {
 /* Start date for the seven-day forecast window */
 .date-picker {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 5px;
+  width: 100%;
   min-width: 0;
   margin: 0 0 14px;
 }
@@ -196,6 +198,7 @@ button.go:hover {
   width: 100%;
   min-width: 0;
   max-width: 100%;
+  justify-self: stretch;
   box-sizing: border-box;
 }
 
