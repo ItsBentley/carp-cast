@@ -13,8 +13,12 @@ var state = {
 function restoreState() {
   try {
     var saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.location) || "null");
-    if (saved && saved.lat) state.location = saved;
-    state.mode = localStorage.getItem(STORAGE_KEYS.mode) || "gps";
+    if (saved && typeof saved.name === "string" &&
+        Number.isFinite(saved.lat) && Number.isFinite(saved.lon)) {
+      state.location = saved;
+    }
+    var mode = localStorage.getItem(STORAGE_KEYS.mode);
+    if (mode === "gps" || mode === "manual") state.mode = mode;
   } catch (e) { /* storage unavailable: keep defaults */ }
 }
 

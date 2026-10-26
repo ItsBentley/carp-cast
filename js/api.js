@@ -4,13 +4,19 @@
    - Open-Meteo: town search and the weather forecast
    ========================================================================== */
 
+async function fetchJson(url, errorMessage) {
+  var response = await fetch(url);
+  if (!response.ok) throw new Error(errorMessage);
+  return response.json();
+}
+
 // Turns a postcode or town name into {name, lat, lon}. Throws if not found.
 async function geocode(query) {
   var compact = query.toUpperCase().replace(/\s+/g, "");
 
   // Full postcode, e.g. CM16 4AB
   if (/^[A-Z]{1,2}\d[A-Z\d]?\d[A-Z]{2}$/.test(compact)) {
-    var pc = await (await fetch("https://api.postcodes.io/postcodes/" + compact)).json();
+    var pc = await fetchJson("https://api.postcodes.io/postcodes/" + compact, "Postcode lookup failed");
     if (pc.status !== 200) throw new Error("Postcode not found");
     return {
       name: query.toUpperCase() + " (" + (pc.result.admin_ward || pc.result.admin_district) + ")",
@@ -21,7 +27,7 @@ async function geocode(query) {
 
   // Postcode area only, e.g. CM16
   if (/^[A-Z]{1,2}\d[A-Z\d]?$/.test(compact)) {
-    var oc = await (await fetch("https://api.postcodes.io/outcodes/" + compact)).json();
+    var oc = await fetchJson("https://api.postcodes.io/outcodes/" + compact, "Postcode lookup failed");
     if (oc.status !== 200) throw new Error("Postcode area not found");
     return { name: compact + " area", lat: oc.result.latitude, lon: oc.result.longitude };
   }
@@ -29,8 +35,8 @@ async function geocode(query) {
   // Anything else is treated as a town or place name
   var url = "https://geocoding-api.open-meteo.com/v1/search?name=" + encodeURIComponent(query) +
             "&count=1&language=en&countryCode=GB";
-  var place = await (await fetch(url)).json();
-  if (!place.results) throw new Error("Place not found");
+  var place = await fetchJson(url, "Place lookup failed");
+  if (!place.results || !place.results.length) throw new Error("Place not found");
   var p = place.results[0];
   return {
     name: p.name + (p.admin1 ? ", " + p.admin1 : ""),
@@ -43,7 +49,7 @@ async function geocode(query) {
 async function nameForCoordinates(lat, lon) {
   try {
     var url = "https://api.postcodes.io/postcodes?lon=" + lon + "&lat=" + lat + "&limit=1";
-    var data = await (await fetch(url)).json();
+    var data = await fetchJson(url, "Location lookup failed");
     if (data.result && data.result[0]) {
       return "Near " + (data.result[0].admin_ward || data.result[0].admin_district);
     }
@@ -52,7 +58,7 @@ async function nameForCoordinates(lat, lon) {
 }
 
 // Downloads the hourly forecast and returns it grouped by day:
-// [{ date: "2026-10-26", hours: [{hr, t, p, w, c, r}, ...] }, ...]
+// [{ date, hours: [{hr, t, p, w, d, c, r}, ...], sunrise, sunset }, ...]
 // t = temp (C), p = pressure (mb), w = wind (mph), d = wind direction (degrees),
 // c = cloud (%), r = rain (mm)
 async function fetchForecast(location) {
@@ -62,13 +68,18 @@ async function fetchForecast(location) {
     "&daily=sunrise,sunset" +
     "&wind_speed_unit=mph&timezone=Europe%2FLondon&forecast_days=" + FORECAST_DAYS;
 
-  var res = await fetch(url);
-  if (!res.ok) throw new Error("Weather service error");
-  var forecast = await res.json();
+  var forecast = await fetchJson(url, "Weather service error");
   var h = forecast.hourly;
   var daily = forecast.daily;
+  if (!h || !daily || !Array.isArray(h.time) || !Array.isArray(daily.time)) {
+    throw new Error("Weather data is incomplete");
+  }
 
-  var byDate = {};
+  var byDate = Object.create(null);
+  var sunTimesByDate = Object.create(null);
+  daily.time.forEach(function (date, i) {
+    sunTimesByDate[date] = { sunrise: daily.sunrise[i], sunset: daily.sunset[i] };
+  });
   h.time.forEach(function (time, i) {
     var date = time.slice(0, 10);
     (byDate[date] = byDate[date] || []).push({
@@ -83,12 +94,15 @@ async function fetchForecast(location) {
   });
 
   return Object.keys(byDate).map(function (date) {
-    var dayIndex = daily.time.indexOf(date);
+    var sunTimes = sunTimesByDate[date];
+    if (!sunTimes || !sunTimes.sunrise || !sunTimes.sunset) {
+      throw new Error("Sunrise and sunset data is missing");
+    }
     return {
       date: date,
       hours: byDate[date],
-      sunrise: daily.sunrise[dayIndex],
-      sunset: daily.sunset[dayIndex]
+      sunrise: sunTimes.sunrise,
+      sunset: sunTimes.sunset
     };
   });
 }
