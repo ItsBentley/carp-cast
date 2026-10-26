@@ -197,8 +197,10 @@ button.go:hover {
 
 .date-picker input[type="date"] {
   display: block;
-  width: 100%;
+  /* Reserve room for padding and borders if Safari sizes the control as content-box. */
+  width: calc(100% - 24px);
   min-width: 0;
+  box-sizing: content-box;
   -webkit-appearance: none;
   appearance: none;
 }
