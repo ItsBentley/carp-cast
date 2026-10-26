@@ -175,20 +175,22 @@ button.go:hover {
 
 /* Start date for the seven-day forecast window */
 .date-picker {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 5px;
+  display: block;
   width: 100%;
   min-width: 0;
   margin: 0 0 14px;
 }
 
 .date-picker label {
+  display: block;
+  margin-bottom: 5px;
   font-size: 0.9rem;
   font-weight: 600;
 }
 
 .date-picker small {
+  display: block;
+  margin-top: 5px;
   color: var(--mute);
   font-size: 0.78rem;
 }
@@ -197,9 +199,8 @@ button.go:hover {
   display: block;
   width: 100%;
   min-width: 0;
-  max-width: 100%;
-  justify-self: stretch;
-  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 /* ---- Place name and status message ---- */
